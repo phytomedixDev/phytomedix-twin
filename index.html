@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Phytomedix Twin Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  :root { --primary: #1b5e20; --secondary: #4caf50; --bg: #f4f7f6; --surface: #ffffff; --text: #2c3e50; --accent: #e8f5e9; }
+  body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); padding: 20px; display: flex; justify-content: center; }
+  .container { width: 100%; max-width: 650px; }
+  
+  /* CARDS */
+  .card { background: var(--surface); padding: 25px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 20px; }
+  .input-card h2 { color: var(--primary); text-align: center; margin-top:0;}
+  .form-group { margin-bottom: 15px; }
+  input[type="text"], input[type="number"], select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
+  .btn { width: 100%; padding: 14px; background: var(--primary); color: white; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 16px; }
+  
+  /* CHECKBOX GRID */
+  .symptom-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+  .symptom-grid label { background: #fafafa; padding: 10px; border-radius: 6px; font-size: 13px; border: 1px solid #eee; cursor:pointer;}
+  .symptom-grid input { margin-right: 8px; }
+
+  /* DASHBOARD */
+  .dashboard { display: none; }
+  .status-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+  .stat-card { background: var(--surface); padding: 15px; border-radius: 12px; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.05); border-bottom: 3px solid var(--primary);}
+  .stat-label { font-size: 11px; text-transform: uppercase; color: #888; font-weight: 700; }
+  .stat-value { font-size: 26px; font-weight: 800; color: var(--primary); margin: 5px 0; }
+  
+  .coach-msg { background: #e3f2fd; color: #0d47a1; padding: 15px; border-radius: 8px; font-size: 14px; text-align: center; margin-bottom: 20px; border: 1px solid #bbdefb; font-weight:600;}
+
+  /* RICH CLINICAL CARDS */
+  .stack-section h3 { color: var(--primary); border-bottom: 2px solid #eee; padding-bottom: 5px; font-size: 15px; text-transform: uppercase; letter-spacing: 1px;}
+  .supplement { background: var(--surface); border-left: 4px solid var(--primary); padding: 15px; margin-bottom: 10px; border-radius: 6px; box-shadow: 0 2px 5px rgba(0,0,0,0.03); }
+  .supp-top { display: flex; justify-content: space-between; align-items: center; }
+  .supp-name { font-weight: 800; font-size: 16px; color: var(--text); }
+  .supp-hero { display: block; font-size: 13px; color: #1b5e20; font-style: italic; margin-bottom: 4px; }
+  .supp-ing { display: block; font-size: 11px; color: #666; margin-bottom: 8px; }
+  .supp-dose { background: var(--accent); color: var(--primary); padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: 800; }
+  
+  /* LIFESTYLE CARDS */
+  .life-card { background: #fffbe6; border: 1px solid #ffe58f; padding: 15px; border-radius: 8px; margin-bottom: 10px; }
+  .life-cat { font-size: 10px; font-weight: 800; color: #d48806; text-transform: uppercase; letter-spacing: 1px;}
+  .life-title { display: block; font-weight: 800; color: #555; margin: 4px 0; font-size:14px;}
+  .life-text { font-size: 13px; color: #666; line-height: 1.4;}
+</style>
+</head>
+<body>
+
+<div class="container">
+  
+  <div class="card input-card" id="inputForm">
+    <h2>🧬 Twin Calibration</h2>
+    <p style="text-align:center; font-size:13px; color:#666; margin-top:-10px;">Full 6-Domain System Analysis</p>
+    
+    <div class="form-group"><input type="text" id="email" placeholder="Email Address (Your ID)"></div>
+    
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+        <div class="form-group"><input type="number" id="age" placeholder="Age" value="35"></div>
+        <div class="form-group">
+            <select id="gender">
+                <option value="Female">Female</option>
+                <option value="Male">Male</option>
+            </select>
+        </div>
+    </div>
+    
+    <label style="font-weight:bold; font-size:12px; color:#888;">SELECT CLINICAL SIGNALS:</label>
+    <div class="symptom-grid">
+      <label><input type="checkbox" id="sym_diabetes" value="Diabetes"> High Blood Sugar</label>
+      <label><input type="checkbox" id="sym_bp" value="Hypertension"> High Blood Pressure</label>
+      <label><input type="checkbox" id="sym_brain" value="Brain Fog"> Brain Fog / Focus</label>
+      <label><input type="checkbox" id="sym_joints" value="Joint Pain"> Joint Inflammation</label>
+      <label><input type="checkbox" id="sym_gut" value="IBS"> IBS / Bloating</label>
+      <label><input type="checkbox" id="sym_hormone" value="Hormonal"> Hormonal / Libido</label>
+    </div>
+    
+    <div class="form-group" style="margin-top:15px;">
+      <label style="font-size:13px;"><input type="checkbox" id="sym_carb"> I eat a high carbohydrate diet</label>
+    </div>
+
+    <button class="btn" onclick="runEngine()" style="margin-top:10px;">Generate Protocol</button>
+  </div>
+
+  <div class="dashboard" id="dashboard">
+    <div class="coach-msg" id="disp_coach"></div>
+
+    <div class="status-grid">
+      <div class="stat-card">
+        <div class="stat-label">Systemic Risk Load</div>
+        <div class="stat-value" id="disp_score">--</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Biological Age</div>
+        <div class="stat-value" id="disp_bioage">--</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Twin Status</div>
+        <div class="stat-value" id="disp_lifecycle" style="font-size:16px; line-height:30px;">--</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <canvas id="twinRadar"></canvas>
+    </div>
+
+    <div class="stack-section">
+      <h3>☀️ Morning Fuel (AM)</h3>
+      <div id="am_list"></div>
+    </div>
+
+    <div class="stack-section">
+      <h3>🌙 Evening Restoration (PM)</h3>
+      <div id="pm_list"></div>
+    </div>
+
+    <div class="stack-section">
+      <h3>🥗 Lifestyle Engine</h3>
+      <div id="life_list"></div>
+    </div>
+    
+    <button class="btn" onclick="location.reload()" style="background:#eee; color:#555; margin-top:20px;">Reset Simulation</button>
+  </div>
+</div>
+
+<script>
+// ⚠️ REPLACE THIS URL ⚠️
+const API_URL = "https://script.google.com/macros/s/AKfycbx4BX-X9KE7uP58AEE-Hsn7EoIlp6wA-A3Jye8U6nBVA2ST0Rus2NsLGqmSIk3GvcDZ/exec"; 
+
+async function runEngine() {
+  const btn = document.querySelector(".btn");
+  btn.innerText = "Processing 6-Domain Analysis...";
+  
+  const q10 = [];
+  if(document.getElementById("sym_diabetes").checked) q10.push("diabetes");
+  if(document.getElementById("sym_bp").checked) q10.push("hypertension");
+  if(document.getElementById("sym_brain").checked) q10.push("brain fog");
+  if(document.getElementById("sym_joints").checked) q10.push("joint");
+  if(document.getElementById("sym_gut").checked) q10.push("ibs");
+  if(document.getElementById("sym_hormone").checked) q10.push("hormone");
+
+  const payload = {
+    email: document.getElementById("email").value,
+    age: document.getElementById("age").value,
+    "Q-002": document.getElementById("gender").value,
+    "Q-010": q10.join("; "),
+    "Q-006": document.getElementById("sym_carb").checked ? "High carb" : "Balanced"
+  };
+
+  try {
+    const res = await fetch(API_URL, { method: "POST", body: JSON.stringify(payload) });
+    const data = await res.json();
+    if(data.status === "success") renderDashboard(data.output);
+    else alert("Error: " + data.message);
+  } catch(e) { alert("Network Error: " + e); }
+}
+
+function renderDashboard(twin) {
+  document.getElementById("inputForm").style.display = "none";
+  document.getElementById("dashboard").style.display = "block";
+
+  document.getElementById("disp_score").innerText = twin.overallScore + "/100";
+  document.getElementById("disp_bioage").innerText = twin.biologicalAge;
+  document.getElementById("disp_lifecycle").innerText = twin.lifecycle.toUpperCase();
+  document.getElementById("disp_coach").innerText = twin.coachMessage;
+
+  const renderStack = (list, elId) => {
+    const el = document.getElementById(elId);
+    el.innerHTML = "";
+    list.forEach(item => {
+      el.innerHTML += `
+        <div class="supplement">
+          <div class="product-info">
+            <div class="supp-top">
+              <span class="supp-name">${item.name}</span>
+              <span class="supp-dose">${item.dose}</span>
+            </div>
+            <span class="supp-hero">"${item.hero}"</span>
+            <span class="supp-ing">Active Ingredients: ${item.ingredients}</span>
+            
+            <details style="margin-top:10px; background:#f9f9f9; padding:10px; border-radius:6px; border:1px solid #eee;">
+              <summary style="cursor:pointer; font-size:12px; color:#1b5e20; font-weight:bold;">Clinical Details (Why this?)</summary>
+              <div style="margin-top:8px;">
+                  <p style="font-size:12px; margin:5px 0;"><b>Rationale:</b> ${item.why}</p>
+                  <p style="font-size:12px; margin:5px 0; color:#d32f2f;"><b>Safety Note:</b> ${item.safety}</p>
+                  <p style="font-size:12px; margin:5px 0; color:#d32f2f;"><b>Contraindications:</b> ${item.contraindications}</p>
+              </div>
+            </details>
+          </div>
+        </div>`;
+    });
+  };
+
+  const renderLife = (list, elId) => {
+    const el = document.getElementById(elId);
+    el.innerHTML = "";
+    list.forEach(l => {
+      el.innerHTML += `
+        <div class="life-card">
+          <span class="life-cat">${l.category}</span>
+          <span class="life-title">${l.title}</span>
+          <div class="life-text">${l.text}</div>
+        </div>`;
+    });
+  };
+
+  renderStack(twin.protocol.AM, "am_list");
+  renderStack(twin.protocol.PM, "pm_list");
+  renderLife(twin.lifestyle, "life_list");
+
+  // ✅ DYNAMIC RADAR CHART USING ALL 6 SCORES
+  new Chart(document.getElementById("twinRadar"), {
+    type: 'radar',
+    data: {
+      labels: ['Metabolic', 'Cardio', 'Cognitive', 'Joints', 'Gut', 'Hormonal'],
+      datasets: [{
+        label: 'Systemic Risk Load',
+        data: [
+            twin.scores.metabolic, 
+            twin.scores.cardio, 
+            twin.scores.cognitive, 
+            twin.scores.joints, 
+            twin.scores.gut, 
+            twin.scores.hormonal
+        ],
+        backgroundColor: 'rgba(27, 94, 32, 0.2)',
+        borderColor: '#1b5e20',
+        pointBackgroundColor: '#1b5e20',
+        borderWidth: 2
+      }]
+    },
+    options: { 
+        scales: { r: { min: 0, max: 100, ticks: { display: false } } }, 
+        plugins: { legend: { display: false } } 
+    }
+  });
+}
+</script>
+</body>
+</html>
