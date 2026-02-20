@@ -127,7 +127,7 @@
 
 <script>
 // The Web App URL you provided
-const API_URL = "https://script.google.com/macros/s/AKfycbx4LTuSQJ3AoFPhqb2K9FXltsBZpKAUnK9HVHjVej91KP24AszcAtsrLfRZwedjlWPP/exec"; 
+const API_URL = "https://script.google.com/macros/s/AKfycbwDKlybDIGPQbOqvl04sXuGkFvMfCSl3U1w_usuV1ZFBgdmPGpVsiKoFQ58frQhivM5_w/exec"; 
 
 async function runEngine() {
   const btn = document.querySelector(".btn");
@@ -149,37 +149,33 @@ async function runEngine() {
     "Q-006": document.getElementById("sym_carb").checked ? "High carb" : "Balanced"
   };
 
- try {
-    // Send as text/plain so the browser skips the OPTIONS preflight check entirely
-    const res = await fetch(API_URL, { 
-        method: "POST", 
-        headers: {
-            "Content-Type": "text/plain;charset=utf-8",
-        },
-        body: JSON.stringify(payload) 
+  try {
+    // Convert payload to a string and encode it for the URL
+    const encodedPayload = encodeURIComponent(JSON.stringify(payload));
+    
+    // Append the payload to the URL as a query parameter (?payload=...)
+    const fullUrl = API_URL + "?payload=" + encodedPayload;
+
+    // Send a standard GET request (Browsers DO NOT block redirects on GET requests)
+    const res = await fetch(fullUrl, {
+      method: "GET"
     });
     
-    // We must wait for the text, then manually parse the JSON
-    // This prevents errors if Apps Script returns an HTML redirect page
-    const rawText = await res.text();
-    let data;
-    try {
-        data = JSON.parse(rawText);
-    } catch (parseError) {
-        throw new Error("Received invalid response from engine. The script might not be deployed correctly.");
-    }
+    const data = await res.json();
     
     if(data.status === "success") {
         renderDashboard(data.output);
     } else {
-        alert("Error from Engine: " + data.message);
+        alert("Error: " + data.message);
         btn.innerText = "Generate Protocol";
     }
   } catch(e) { 
-      alert("Network Error: " + e.message + "\n\nMake sure Apps Script is deployed as a NEW Web App and accessible by 'Anyone'."); 
+      alert("Network Error: " + e.message); 
       console.error(e);
       btn.innerText = "Generate Protocol";
   }
+}
+
 function renderDashboard(twin) {
   document.getElementById("inputForm").style.display = "none";
   document.getElementById("dashboard").style.display = "block";
@@ -263,6 +259,3 @@ function renderDashboard(twin) {
 </script>
 </body>
 </html>
-
-
-
