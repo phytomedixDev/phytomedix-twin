@@ -126,8 +126,8 @@
 </div>
 
 <script>
-// ⚠️ REPLACE THIS URL ⚠️
-const API_URL = "https://script.google.com/macros/s/AKfycbzD1wANUs2pwvlj4-emBFpsfVX9ZNNHUt4uAimRKeahfFSpuC0ZTkYpiVPAEqMvT8Q5/exec"; 
+// The Web App URL you provided
+const API_URL = "https://script.google.com/macros/s/AKfycbx4BX-X9KE7uP58AEE-Hsn7EoIlp6wA-A3Jye8U6nBVA2ST0Rus2NsLGqmSIk3GvcDZ/exec"; 
 
 async function runEngine() {
   const btn = document.querySelector(".btn");
@@ -150,26 +150,26 @@ async function runEngine() {
   };
 
   try {
-    // FIX: Force 'text/plain' and 'no-cors' mode to bypass strict browser blocking
+    // FIX: Force 'text/plain' to bypass strict browser CORS preflight blocking
     const res = await fetch(API_URL, { 
-      method: "POST", 
-      headers: {
-        "Content-Type": "text/plain;charset=utf-8",
-      },
-      redirect: "follow", // Apps script requires following redirects
-      body: JSON.stringify(payload) 
+        method: "POST", 
+        headers: {
+            "Content-Type": "text/plain;charset=utf-8",
+        },
+        body: JSON.stringify(payload) 
     });
     
     const data = await res.json();
-    
     if(data.status === "success") {
         renderDashboard(data.output);
-    } else { 
-        alert("Error from Engine: " + data.message);
+    } else {
+        alert("Error: " + data.message);
+        btn.innerText = "Generate Protocol";
     }
   } catch(e) { 
-      alert("Network Error: Make sure your Apps Script is deployed as 'Anyone' can access. Details: " + e); 
+      alert("Network Error: " + e); 
       console.error(e);
+      btn.innerText = "Generate Protocol";
   }
 }
 
@@ -255,6 +255,4 @@ function renderDashboard(twin) {
 }
 </script>
 </body>
-
 </html>
-
