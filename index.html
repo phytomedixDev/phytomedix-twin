@@ -149,8 +149,8 @@ async function runEngine() {
     "Q-006": document.getElementById("sym_carb").checked ? "High carb" : "Balanced"
   };
 
-  try {
-    // FIX: Force 'text/plain' to bypass strict browser CORS preflight blocking
+ try {
+    // Send as text/plain so the browser skips the OPTIONS preflight check entirely
     const res = await fetch(API_URL, { 
         method: "POST", 
         headers: {
@@ -159,20 +159,27 @@ async function runEngine() {
         body: JSON.stringify(payload) 
     });
     
-    const data = await res.json();
+    // We must wait for the text, then manually parse the JSON
+    // This prevents errors if Apps Script returns an HTML redirect page
+    const rawText = await res.text();
+    let data;
+    try {
+        data = JSON.parse(rawText);
+    } catch (parseError) {
+        throw new Error("Received invalid response from engine. The script might not be deployed correctly.");
+    }
+    
     if(data.status === "success") {
         renderDashboard(data.output);
     } else {
-        alert("Error: " + data.message);
+        alert("Error from Engine: " + data.message);
         btn.innerText = "Generate Protocol";
     }
   } catch(e) { 
-      alert("Network Error: " + e); 
+      alert("Network Error: " + e.message + "\n\nMake sure Apps Script is deployed as a NEW Web App and accessible by 'Anyone'."); 
       console.error(e);
       btn.innerText = "Generate Protocol";
   }
-}
-
 function renderDashboard(twin) {
   document.getElementById("inputForm").style.display = "none";
   document.getElementById("dashboard").style.display = "block";
@@ -256,4 +263,5 @@ function renderDashboard(twin) {
 </script>
 </body>
 </html>
+
 
