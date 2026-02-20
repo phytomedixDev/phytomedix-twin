@@ -126,10 +126,10 @@
 </div>
 
 <script>
-// The Web App URL you provided
-const API_URL = "https://script.google.com/macros/s/AKfycbwDKlybDIGPQbOqvl04sXuGkFvMfCSl3U1w_usuV1ZFBgdmPGpVsiKoFQ58frQhivM5_w/exec"; 
+// ⚠️ REPLACE THIS URL WITH YOUR BRAND NEW DEPLOYMENT URL
+const API_URL = "YOUR_NEW_APPS_SCRIPT_URL_HERE"; 
 
-async function runEngine() {
+function runEngine() {
   const btn = document.querySelector(".btn");
   btn.innerText = "Processing 6-Domain Analysis...";
   
@@ -150,27 +150,33 @@ async function runEngine() {
   };
 
   try {
-    // Convert payload to a string and encode it for the URL
     const encodedPayload = encodeURIComponent(JSON.stringify(payload));
+    const callbackName = 'jsonpCallback_' + Math.round(100000 * Math.random());
     
-    // Append the payload to the URL as a query parameter (?payload=...)
-    const fullUrl = API_URL + "?payload=" + encodedPayload;
+    window[callbackName] = function(data) {
+        delete window[callbackName];
+        document.body.removeChild(script);
+        
+        if(data.status === "success") {
+            renderDashboard(data.output);
+        } else {
+            alert("Error from Engine: " + data.message);
+            btn.innerText = "Generate Protocol";
+        }
+    };
 
-    // Send a standard GET request (Browsers DO NOT block redirects on GET requests)
-    const res = await fetch(fullUrl, {
-      method: "GET"
-    });
+    const script = document.createElement('script');
+    script.src = API_URL + "?payload=" + encodedPayload + "&callback=" + callbackName;
     
-    const data = await res.json();
-    
-    if(data.status === "success") {
-        renderDashboard(data.output);
-    } else {
-        alert("Error: " + data.message);
+    script.onerror = function() {
+        alert("Network Error: Failed to connect to engine. Ensure deployment is set to 'Anyone'.");
         btn.innerText = "Generate Protocol";
-    }
+    };
+    
+    document.body.appendChild(script);
+
   } catch(e) { 
-      alert("Network Error: " + e.message); 
+      alert("System Error: " + e.message); 
       console.error(e);
       btn.innerText = "Generate Protocol";
   }
@@ -229,7 +235,6 @@ function renderDashboard(twin) {
   renderStack(twin.protocol.PM, "pm_list");
   renderLife(twin.lifestyle, "life_list");
 
-  // ✅ DYNAMIC RADAR CHART USING ALL 6 SCORES
   new Chart(document.getElementById("twinRadar"), {
     type: 'radar',
     data: {
