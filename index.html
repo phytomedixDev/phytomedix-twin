@@ -150,11 +150,27 @@ async function runEngine() {
   };
 
   try {
-    const res = await fetch(API_URL, { method: "POST", body: JSON.stringify(payload) });
+    // FIX: Force 'text/plain' and 'no-cors' mode to bypass strict browser blocking
+    const res = await fetch(API_URL, { 
+      method: "POST", 
+      headers: {
+        "Content-Type": "text/plain;charset=utf-8",
+      },
+      redirect: "follow", // Apps script requires following redirects
+      body: JSON.stringify(payload) 
+    });
+    
     const data = await res.json();
-    if(data.status === "success") renderDashboard(data.output);
-    else alert("Error: " + data.message);
-  } catch(e) { alert("Network Error: " + e); }
+    
+    if(data.status === "success") {
+        renderDashboard(data.output);
+    } else { 
+        alert("Error from Engine: " + data.message);
+    }
+  } catch(e) { 
+      alert("Network Error: Make sure your Apps Script is deployed as 'Anyone' can access. Details: " + e); 
+      console.error(e);
+  }
 }
 
 function renderDashboard(twin) {
@@ -241,3 +257,4 @@ function renderDashboard(twin) {
 </body>
 
 </html>
+
