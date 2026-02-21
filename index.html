@@ -142,7 +142,9 @@ function runEngine() {
     const encodedPayload = encodeURIComponent(JSON.stringify(payload));
     const callbackName = 'jsonpCallback_' + Math.round(100000 * Math.random());
     
+    // Create a global function that the Apps Script will execute when it returns
     window[callbackName] = function(data) {
+        // Clean up the script tag after it runs
         delete window[callbackName];
         document.body.removeChild(script);
         
@@ -154,15 +156,16 @@ function runEngine() {
         }
     };
 
+    // Create a dynamic script tag (This forces a GET request, bypassing CORS blocks)
     const script = document.createElement('script');
-    // Using GET and JSONP to bypass browser POST restrictions
     script.src = API_URL + "?payload=" + encodedPayload + "&callback=" + callbackName;
     
     script.onerror = function() {
-        alert("Network Error: Failed to connect to engine. Ensure deployment is set to 'Anyone'.");
+        alert("Network Error: Failed to connect to engine. Ensure Apps Script is published as 'Anyone'.");
         btn.innerText = "Generate Protocol";
     };
     
+    // Append to body to trigger the request
     document.body.appendChild(script);
 
   } catch(e) { 
@@ -171,7 +174,6 @@ function runEngine() {
       btn.innerText = "Generate Protocol";
   }
 }
-
 function renderDashboard(twin) {
   document.getElementById("inputForm").style.display = "none";
   document.getElementById("dashboard").style.display = "block";
@@ -199,3 +201,4 @@ function renderDashboard(twin) {
             </div>
             <span class="supp-hero">"${item.hero || ''}"</span>
             <span class
+
