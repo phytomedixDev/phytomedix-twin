@@ -115,10 +115,10 @@
 </div>
 
 <script>
-// ⚠️ REPLACE THIS URL WITH YOUR BRAND NEW V24.0 DEPLOYMENT URL
-const API_URL = "https://script.google.com/macros/s/AKfycbyBWYccA332VLdIpQ2ItjBZM4c5d6LymK6gCdX8mY002ndMZpq3fNAQTP7IL2P5TPR2/exec"; 
+// ⚠️ PASTE YOUR BRAND NEW APPS SCRIPT URL HERE
+const API_URL = "YOUR_NEW_APPS_SCRIPT_URL_HERE"; 
 
-async function runEngine() {
+function runEngine() {
   const btn = document.querySelector(".btn");
   btn.innerText = "Querying Database...";
   
@@ -139,30 +139,33 @@ async function runEngine() {
   };
 
   try {
-    const res = await fetch(API_URL, { 
-        method: "POST", 
-        headers: {
-            "Content-Type": "text/plain;charset=utf-8",
-        },
-        body: JSON.stringify(payload) 
-    });
+    const encodedPayload = encodeURIComponent(JSON.stringify(payload));
+    const callbackName = 'jsonpCallback_' + Math.round(100000 * Math.random());
     
-    const rawText = await res.text();
-    let data;
-    try {
-        data = JSON.parse(rawText);
-    } catch (e) {
-        throw new Error("Received an invalid response. Ensure Apps Script is published as 'Anyone'.");
-    }
+    window[callbackName] = function(data) {
+        delete window[callbackName];
+        document.body.removeChild(script);
+        
+        if(data.status === "success") {
+            renderDashboard(data.output);
+        } else {
+            alert("Error from Engine: " + data.message);
+            btn.innerText = "Generate Protocol";
+        }
+    };
+
+    const script = document.createElement('script');
+    script.src = API_URL + "?payload=" + encodedPayload + "&callback=" + callbackName;
     
-    if(data.status === "success") {
-        renderDashboard(data.output);
-    } else {
-        alert("Error from Engine: " + data.message);
+    script.onerror = function() {
+        alert("Network Error: Failed to connect to engine.");
         btn.innerText = "Generate Protocol";
-    }
+    };
+    
+    document.body.appendChild(script);
+
   } catch(e) { 
-      alert("Network Error: " + e.message); 
+      alert("System Error: " + e.message); 
       console.error(e);
       btn.innerText = "Generate Protocol";
   }
@@ -185,31 +188,25 @@ function renderDashboard(twin) {
         return;
     }
     list.forEach(item => {
-      let doseString = item.dose || "";
-      if (item.final_dose_mg) {
-         doseString += " (" + item.final_dose_mg + "mg)";
-      }
-      
-      el.innerHTML += `
-        <div class="supplement">
-          <div class="product-info">
-            <div class="supp-top">
-              <span class="supp-name">${item.name}</span>
-              <span class="supp-dose">${doseString}</span>
-            </div>
-            <span class="supp-hero">"${item.hero}"</span>
-            <span class="supp-ing">Active Ingredients: ${item.ingredients}</span>
-            
-            <details style="margin-top:10px; background:#f9f9f9; padding:10px; border-radius:6px; border:1px solid #eee;">
-              <summary style="cursor:pointer; font-size:12px; color:#1b5e20; font-weight:bold;">Clinical Details (Why this?)</summary>
-              <div style="margin-top:8px;">
-                  <p style="font-size:12px; margin:5px 0;"><b>Rationale:</b> ${item.why}</p>
-                  <p style="font-size:12px; margin:5px 0; color:#d32f2f;"><b>Safety Note:</b> ${item.safety}</p>
-                  <p style="font-size:12px; margin:5px 0; color:#d32f2f;"><b>Contraindications:</b> ${item.contraindications}</p>
-              </div>
-            </details>
-          </div>
-        </div>`;
+      let finalDoseText = item.final_dose_mg ? '(' + item.final_dose_mg + 'mg)' : '';
+      el.innerHTML += '<div class="supplement">' +
+          '<div class="product-info">' +
+            '<div class="supp-top">' +
+              '<span class="supp-name">' + item.name + '</span>' +
+              '<span class="supp-dose">' + item.dose + ' ' + finalDoseText + '</span>' +
+            '</div>' +
+            '<span class="supp-hero">"' + item.hero + '"</span>' +
+            '<span class="supp-ing">Active Ingredients: ' + item.ingredients + '</span>' +
+            '<details style="margin-top:10px; background:#f9f9f9; padding:10px; border-radius:6px; border:1px solid #eee;">' +
+              '<summary style="cursor:pointer; font-size:12px; color:#1b5e20; font-weight:bold;">Clinical Details (Why this?)</summary>' +
+              '<div style="margin-top:8px;">' +
+                  '<p style="font-size:12px; margin:5px 0;"><b>Rationale:</b> ' + item.why + '</p>' +
+                  '<p style="font-size:12px; margin:5px 0; color:#d32f2f;"><b>Safety Note:</b> ' + item.safety + '</p>' +
+                  '<p style="font-size:12px; margin:5px 0; color:#d32f2f;"><b>Contraindications:</b> ' + item.contraindications + '</p>' +
+              '</div>' +
+            '</details>' +
+          '</div>' +
+        '</div>';
     });
   };
 
@@ -217,12 +214,11 @@ function renderDashboard(twin) {
     const el = document.getElementById(elId);
     el.innerHTML = "";
     list.forEach(l => {
-      el.innerHTML += `
-        <div class="life-card">
-          <span class="life-cat">${l.category}</span>
-          <span class="life-title">${l.title}</span>
-          <div class="life-text">${l.text}</div>
-        </div>`;
+      el.innerHTML += '<div class="life-card">' +
+          '<span class="life-cat">' + l.category + '</span>' +
+          '<span class="life-title">' + l.title + '</span>' +
+          '<div class="life-text">' + l.text + '</div>' +
+        '</div>';
     });
   };
 
@@ -237,12 +233,8 @@ function renderDashboard(twin) {
       datasets: [{
         label: 'Systemic Risk Load',
         data: [
-            twin.scores.metabolic, 
-            twin.scores.cardio, 
-            twin.scores.cognitive, 
-            twin.scores.joints, 
-            twin.scores.gut, 
-            twin.scores.hormonal
+            twin.scores.metabolic, twin.scores.cardio, twin.scores.cognitive, 
+            twin.scores.joints, twin.scores.gut, twin.scores.hormonal
         ],
         backgroundColor: 'rgba(27, 94, 32, 0.2)',
         borderColor: '#1b5e20',
@@ -250,12 +242,10 @@ function renderDashboard(twin) {
         borderWidth: 2
       }]
     },
-    options: { 
-        scales: { r: { min: 0, max: 100, ticks: { display: false } } }, 
-        plugins: { legend: { display: false } } 
-    }
+    options: { scales: { r: { min: 0, max: 100, ticks: { display: false } } }, plugins: { legend: { display: false } } }
   });
 }
 </script>
 </body>
 </html>
+
