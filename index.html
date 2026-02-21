@@ -115,8 +115,8 @@
 </div>
 
 <script>
-// ⚠️ PASTE YOUR BRAND NEW APPS SCRIPT URL HERE
-const API_URL = "https://script.google.com/macros/s/AKfycbz1mFCZYfVxIHsGh3bBS0rQgP8FSaiGGlV9LhyvoD3IUsk6G-swzimv2--7wuFWeAY7uQ/exec"; 
+// ⚠️ REPLACE THIS URL WITH YOUR BRAND NEW DEPLOYMENT URL ⚠️
+const API_URL = "https://script.google.com/macros/s/AKfycbzo0VPKY-Ho6EA86T_aC04FgTm1RirQzKt7FuiRhDyTvJ_3OTeEew89ym41DFRVFOi_/exec"; 
 
 function runEngine() {
   const btn = document.querySelector(".btn");
@@ -155,10 +155,11 @@ function runEngine() {
     };
 
     const script = document.createElement('script');
+    // Using GET and JSONP to bypass browser POST restrictions
     script.src = API_URL + "?payload=" + encodedPayload + "&callback=" + callbackName;
     
     script.onerror = function() {
-        alert("Network Error: Failed to connect to engine.");
+        alert("Network Error: Failed to connect to engine. Ensure deployment is set to 'Anyone'.");
         btn.innerText = "Generate Protocol";
     };
     
@@ -189,64 +190,12 @@ function renderDashboard(twin) {
     }
     list.forEach(item => {
       let finalDoseText = item.final_dose_mg ? '(' + item.final_dose_mg + 'mg)' : '';
-      el.innerHTML += '<div class="supplement">' +
-          '<div class="product-info">' +
-            '<div class="supp-top">' +
-              '<span class="supp-name">' + item.name + '</span>' +
-              '<span class="supp-dose">' + item.dose + ' ' + finalDoseText + '</span>' +
-            '</div>' +
-            '<span class="supp-hero">"' + item.hero + '"</span>' +
-            '<span class="supp-ing">Active Ingredients: ' + item.ingredients + '</span>' +
-            '<details style="margin-top:10px; background:#f9f9f9; padding:10px; border-radius:6px; border:1px solid #eee;">' +
-              '<summary style="cursor:pointer; font-size:12px; color:#1b5e20; font-weight:bold;">Clinical Details (Why this?)</summary>' +
-              '<div style="margin-top:8px;">' +
-                  '<p style="font-size:12px; margin:5px 0;"><b>Rationale:</b> ' + item.why + '</p>' +
-                  '<p style="font-size:12px; margin:5px 0; color:#d32f2f;"><b>Safety Note:</b> ' + item.safety + '</p>' +
-                  '<p style="font-size:12px; margin:5px 0; color:#d32f2f;"><b>Contraindications:</b> ' + item.contraindications + '</p>' +
-              '</div>' +
-            '</details>' +
-          '</div>' +
-        '</div>';
-    });
-  };
-
-  const renderLife = (list, elId) => {
-    const el = document.getElementById(elId);
-    el.innerHTML = "";
-    list.forEach(l => {
-      el.innerHTML += '<div class="life-card">' +
-          '<span class="life-cat">' + l.category + '</span>' +
-          '<span class="life-title">' + l.title + '</span>' +
-          '<div class="life-text">' + l.text + '</div>' +
-        '</div>';
-    });
-  };
-
-  renderStack(twin.protocol.AM, "am_list");
-  renderStack(twin.protocol.PM, "pm_list");
-  renderLife(twin.lifestyle, "life_list");
-
-  new Chart(document.getElementById("twinRadar"), {
-    type: 'radar',
-    data: {
-      labels: ['Metabolic', 'Cardio', 'Cognitive', 'Joints', 'Gut', 'Hormonal'],
-      datasets: [{
-        label: 'Systemic Risk Load',
-        data: [
-            twin.scores.metabolic, twin.scores.cardio, twin.scores.cognitive, 
-            twin.scores.joints, twin.scores.gut, twin.scores.hormonal
-        ],
-        backgroundColor: 'rgba(27, 94, 32, 0.2)',
-        borderColor: '#1b5e20',
-        pointBackgroundColor: '#1b5e20',
-        borderWidth: 2
-      }]
-    },
-    options: { scales: { r: { min: 0, max: 100, ticks: { display: false } } }, plugins: { legend: { display: false } } }
-  });
-}
-</script>
-</body>
-</html>
-
-
+      el.innerHTML += `
+        <div class="supplement">
+          <div class="product-info">
+            <div class="supp-top">
+              <span class="supp-name">${item.name}</span>
+              <span class="supp-dose">${item.dose} ${finalDoseText}</span>
+            </div>
+            <span class="supp-hero">"${item.hero || ''}"</span>
+            <span class
