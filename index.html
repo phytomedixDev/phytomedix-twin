@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Phytomedix | Digital Twin v28.0</title>
+<title>Phytomedix | Digital Twin v28.1</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;700;800&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -423,7 +423,7 @@ input[type="range"]::-webkit-slider-thumb {
 <header class="site-header">
   <div class="logo">PHYTO<span>MEDIX</span></div>
   <div class="header-right">
-    <span class="engine-badge">ENGINE v28.0</span>
+    <span class="engine-badge">ENGINE v28.1</span>
   </div>
 </header>
 
@@ -447,7 +447,7 @@ input[type="range"]::-webkit-slider-thumb {
     <!-- Form -->
     <div class="card" id="formCard">
       <h2>Twin Calibration</h2>
-      <p class="subtitle">6-Domain analysis · ERP-integrated · Behaviour-adaptive · v28.0</p>
+      <p class="subtitle">6-Domain analysis · ERP-integrated · Behaviour-adaptive · v28.1</p>
 
       <div class="field-row">
         <div>
@@ -513,7 +513,7 @@ input[type="range"]::-webkit-slider-thumb {
       <div class="spinner-dna">🧬</div>
       <div class="loading-stage" id="loadingStage">Initializing engine...</div>
       <div class="loading-bar-wrap"><div class="loading-bar" id="loadingBar"></div></div>
-      <div class="loading-sub">Engine v28.0 · Behaviour-adaptive · ERP catalog</div>
+      <div class="loading-sub">Engine v28.1 · Behaviour-adaptive · ERP catalog</div>
     </div>
 
     <!-- Dashboard -->
@@ -707,7 +707,7 @@ input[type="range"]::-webkit-slider-thumb {
 // ════════════════════════════════════════════════
 // CONFIG
 // ════════════════════════════════════════════════
-var API_URL = "https://script.google.com/macros/s/AKfycbz33Q_eHlcVxmaGXMFRRyUIVMbBiD5HhD5MDYyk1E0Qxcdb4BsNBevvzsCdKiPdjUr_Ag/exec";
+var API_URL = "https://script.google.com/macros/s/AKfycbyniZyTLxqkvl6RnL4ttweHQOPde4FS1HQRNKhR2DiZzdMOs81UFR66Ws0y1q2gb_OA-A/exec";
 
 var STAGES = [
   "Loading clinical profiles...",
@@ -794,44 +794,60 @@ function runAssessment() {
 }
 
 // ════════════════════════════════════════════════
-// MICRO CHECK-IN CALL
+// MICRO CHECK-IN CALL — v28.1
+// [v28.1-1] Sends action:"checkin" → engine routes to runCheckin()
+//           which reads stored TwinState (no Q-010 / domain recalc)
+// [v28.1-2] All 4 behaviour signals sent — engine stores them
+// [v28.1-3] Full adaptive response returned in single call
 // ════════════════════════════════════════════════
 function runCheckin() {
   var email = document.getElementById("ci_email").value.trim();
   if (!email) { alert("Please enter your email (same as your assessment)."); return; }
 
   var adherenceSlider = parseInt(document.getElementById("ci_adherence").value) || 8;
-  var adherence100    = adherenceSlider * 10;  // Convert 1-10 to 0-100
+  var adherence100    = adherenceSlider * 10;  // Convert 1-10 slider to 0-100
 
+  // action:"checkin" routes to runCheckin() — no age/gender/Q-010 needed
+  // runCheckin() reads stored TwinState scores; no domain regression possible
   var payload = {
-    email:          email,
-    adherence:      adherence100,
-    energy_score:   document.getElementById("ci_energy").value,
-    sleep_quality:  document.getElementById("ci_sleep").value,
-    stress_level:   document.getElementById("ci_stress").value,
-    // Engine also needs these to recalculate scores
-    age:     35,       // Engine uses existing TwinState; these are fallback
-    "Q-002": "Unknown",
-    "Q-010": ""
+    action:        "checkin",
+    email:         email,
+    adherence:     adherence100,
+    energy_score:  document.getElementById("ci_energy").value,
+    sleep_quality: document.getElementById("ci_sleep").value,
+    stress_level:  document.getElementById("ci_stress").value
   };
 
   document.getElementById("checkinBtn").style.display = "none";
   document.getElementById("ci_loading").style.display = "block";
+  document.getElementById("ci_result").style.display  = "none";
 
   jsonpCall(payload, function(data) {
     document.getElementById("ci_loading").style.display = "none";
     document.getElementById("checkinBtn").style.display = "block";
     if (data.status === "success") {
-      var out = data.output;
-      var resp = parseFloat(out.responsiveness) || 1.0;
-      var respLabel = respToLabel(resp).label;
+      var out      = data.output;
+      var resp     = parseFloat(out.responsiveness) || 1.0;
+      var respInfo = respToLabel(resp);
+      var mom      = parseFloat(out.momentum) || 0;
+      var momSign  = mom >= 0 ? "+" : "";
+
       document.getElementById("ci_result_body").innerHTML =
-        "<strong>Cycle " + (out.cycleNumber || "—") + " complete.</strong><br><br>" +
-        "Your Twin recalibrated with <strong>" + respLabel + "</strong> responsiveness (" + resp.toFixed(1) + "x).<br><br>" +
-        "Updated trajectory: <strong>" + esc(out.lifecycle || "—") + "</strong><br>" +
-        "90-day projection: <strong>" + (out.projection90d || "—") + "/100</strong><br>" +
-        "Momentum: <strong>" + (out.momentum >= 0 ? "+" : "") + (out.momentum || 0) + "</strong><br><br>" +
-        "<em>" + esc(out.coachMessage || "") + "</em>";
+        "<strong>Cycle " + (out.cycleNumber || "—") + " recorded.</strong><br><br>" +
+        "<table style='width:100%;border-collapse:collapse;font-size:12px;'>" +
+        "<tr><td style='padding:5px 0;color:#4a5568;'>Responsiveness</td>" +
+        "    <td style='padding:5px 0;font-weight:700;color:#2e7d4f;'>" + resp.toFixed(1) + "x — " + respInfo.label + "</td></tr>" +
+        "<tr><td style='padding:5px 0;color:#4a5568;'>Lifecycle</td>" +
+        "    <td style='padding:5px 0;font-weight:700;'>" + esc(out.lifecycle || "—") + "</td></tr>" +
+        "<tr><td style='padding:5px 0;color:#4a5568;'>Momentum</td>" +
+        "    <td style='padding:5px 0;font-weight:700;'>" + momSign + mom + "</td></tr>" +
+        "<tr><td style='padding:5px 0;color:#4a5568;'>90-day projection</td>" +
+        "    <td style='padding:5px 0;font-weight:700;'>" + (out.projection90d || "—") + "/100</td></tr>" +
+        "<tr><td style='padding:5px 0;color:#4a5568;'>Adherence stored</td>" +
+        "    <td style='padding:5px 0;font-weight:700;'>" + (out.adherence_score || adherence100) + "%</td></tr>" +
+        "</table><br>" +
+        "<em style='font-size:12px;color:#4a5568;'>" + esc(out.coachMessage || "") + "</em>";
+
       document.getElementById("ci_result").style.display = "block";
     } else {
       alert("Check-in error: " + (data.message || "Unknown error"));
@@ -1095,4 +1111,3 @@ updatePreview();
 </script>
 </body>
 </html>
-
